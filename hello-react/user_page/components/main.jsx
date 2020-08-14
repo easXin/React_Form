@@ -1,7 +1,7 @@
 import React, {Component} from 'react'
 import PropTypes from 'prop-types'
 import axios from 'axios'
-
+import PubSub from 'PubSub'
 import '../main.css'
 export default class Main extends Component{
     state={
@@ -12,6 +12,40 @@ export default class Main extends Component{
     }
     static propTypes = {
         searchName:PropTypes.string.isRequired
+    }
+
+    componentDidMount(){
+        // 消息名， 回调函数
+        PubSub.subscribe('search',function(msg,searchName){
+            this.setState({
+                initView: false,
+                loading: true,
+            });
+            const url = `https://api.github.com/search/repositories?q=${searchName}`;
+            axios
+                .get(url)
+                .then((response) => {
+                const result = response.data;
+                console.log(result);
+                const users = result.items.map((item) => {
+                    return {
+                    name: item.owner.login,
+                    url: item.owner.html_url,
+                    avatarUrl: item.owner.avatar_url,
+                    };
+                });
+                this.setState({
+                    loading: false,
+                    users,
+                });
+                })
+                .catch((error) => {
+                this.setState({
+                    loading: false,
+                    errorMsg: error.message,
+                });
+                });
+        })
     }
     // 当属性接收到新的属性值时调用
     componentWillReceiveProps(newProp){ // 指定新的searchName
